@@ -1,0 +1,64 @@
+# Example Configuration File
+# An end-user will copy this into their ESPHome dashboard to build the project.
+
+substitutions:
+  # Device Name
+  name: "weather-station"
+  friendly_name: "Weather Station"
+
+  # Hardware Pins (Override default pins if necessary)
+  i2c_sda: "4"
+  i2c_scl: "5"
+  
+  # Home Assistant Entities (Replace with your actual entities)
+  ha_outside_temp_entity: "sensor.backyard_temperature"
+  ha_outside_humidity_entity: "sensor.backyard_humidity"
+  ha_outside_battery_entity: "sensor.backyard_battery"
+  ha_pressure_entity: "sensor.aqara_pressure"
+  ha_weather_entity: "weather.home"
+  ha_moon_phase_entity: "sensor.moon"
+
+# Core ESPHome Configuration
+esphome:
+  name: ${name}
+  friendly_name: ${friendly_name}
+
+esp32:
+  board: esp32-s3-devkitc-1
+  flash_size: 16MB
+  framework:
+    type: esp-idf
+
+# The N16R8 module has 8 MB octal PSRAM. LVGL can use it for its draw buffer.
+psram:
+  mode: octal
+
+# Import the core UI and the official hardware definitions
+packages:
+  core:
+    url: https://github.com/wiz78/weather-station
+    file: core.yaml
+  ui:
+    url: https://github.com/wiz78/weather-station
+    file: lvgl_ui.yaml
+  hardware:
+    url: https://github.com/wiz78/weather-station
+    file: hw_official_build.yaml
+
+# Wi-Fi Configuration
+wifi:
+  # By omitting the hardcoded SSID/Password here, the ESP32 will automatically
+  # broadcast a fallback hotspot if it cannot connect to a saved network.
+  ap:
+    ssid: "Weather Station Setup"
+
+# Enable the Captive Portal for the fallback hotspot
+captive_portal:
+
+# Enable Improv via Serial (Allows provisioning Wi-Fi directly via WebSerial during initial flash)
+improv_serial:
+
+api:
+ota:
+  - platform: esphome
+logger:

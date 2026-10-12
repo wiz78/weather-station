@@ -1,0 +1,697 @@
+# Core UI and Logic for the Weather Station
+# This file handles the LVGL interface and internal logic.
+# It uses Home Assistant sensors (imported via substitutions) and local sensors.
+
+esphome:
+  # Import custom C++ logic (e.g. for the Ice Alert LED blinker)
+  includes:
+    - src/weather_logic.h
+    - src/weather_logic.cpp
+    - src/display_control.h
+    - src/display_control.cpp
+    - src/air_quality.h
+    - src/air_quality.cpp
+    - src/sht4x_maintenance.h
+    - src/sht4x_maintenance.cpp
+
+time:
+  # Pulls the time and timezone exactly as configured in Home Assistant!
+  - platform: homeassistant
+    id: ha_time
+
+image:
+  - platform: file
+    defaults:
+      type: RGB565
+      transparency: alpha_channel
+      resize: 60x60
+    files:
+      - id: weather_icon_clear_day
+        file: images/weather/png/clear-day.png
+      - id: weather_icon_clear_night
+        file: images/weather/png/clear-night.png
+      - id: weather_icon_cloudy
+        file: images/weather/png/cloudy.png
+      - id: weather_icon_extreme_rain
+        file: images/weather/png/extreme-rain.png
+      - id: weather_icon_fog
+        file: images/weather/png/fog.png
+      - id: weather_icon_hail
+        file: images/weather/png/hail.png
+      - id: weather_icon_not_available
+        file: images/weather/png/not-available.png
+      - id: weather_icon_overcast
+        file: images/weather/png/overcast.png
+      - id: weather_icon_partly_cloudy_day
+        file: images/weather/png/partly-cloudy-day.png
+      - id: weather_icon_rain
+        file: images/weather/png/rain.png
+      - id: weather_icon_sleet
+        file: images/weather/png/sleet.png
+      - id: weather_icon_snow
+        file: images/weather/png/snow.png
+      - id: weather_icon_thunderstorms_rain
+        file: images/weather/png/thunderstorms-rain.png
+      - id: weather_icon_thunderstorms
+        file: images/weather/png/thunderstorms.png
+      - id: weather_icon_wind
+        file: images/weather/png/wind.png
+
+mapping:
+  - id: weather_icon_map
+    from: string
+    to: image
+    default_value: weather_icon_not_available
+    entries:
+      sunny: weather_icon_clear_day
+      clear-night: weather_icon_clear_night
+      partlycloudy: weather_icon_partly_cloudy_day
+      cloudy: weather_icon_cloudy
+      fog: weather_icon_fog
+      hail: weather_icon_hail
+      lightning: weather_icon_thunderstorms
+      lightning-rainy: weather_icon_thunderstorms_rain
+      pouring: weather_icon_extreme_rain
+      rainy: weather_icon_rain
+      snowy: weather_icon_snow
+      snowy-rainy: weather_icon_sleet
+      windy: weather_icon_wind
+      windy-variant: weather_icon_overcast
+      exceptional: weather_icon_not_available
+
+  - id: weather_condition_label_map
+    from: string
+    to: string
+    default_value: "Unavailable"
+    entries:
+      sunny: "Sunny"
+      clear-night: "Clear night"
+      partlycloudy: "Partly cloudy"
+      cloudy: "Cloudy"
+      fog: "Fog"
+      hail: "Hail"
+      lightning: "Lightning"
+      lightning-rainy: "Thunderstorms"
+      pouring: "Pouring rain"
+      rainy: "Rainy"
+      snowy: "Snowy"
+      snowy-rainy: "Sleet"
+      windy: "Windy"
+      windy-variant: "Windy and cloudy"
+      exceptional: "Exceptional"
+
+globals:
+  # Saves user preferences to flash (NVS) across reboots
+  - id: user_max_brightness
+    type: float
+    restore_value: yes
+    initial_value: '1.0'
+  - id: user_screen_timeout_steps
+    type: int
+    restore_value: yes
+    initial_value: '2'
+  - id: ice_alert_sleep_disabled
+    type: bool
+    restore_value: yes
+    initial_value: 'false'
+  - id: last_burn_in_noise_ms
+    type: uint32_t
+    restore_value: no
+    initial_value: '0'
+  - id: display_is_asleep
+    type: bool
+    restore_value: no
+    initial_value: 'false'
+  - id: display_transitioning
+    type: bool
+    restore_value: no
+    initial_value: 'false'
+  - id: display_last_activity_ms
+    type: uint32_t
+    restore_value: no
+    initial_value: '0'
+
+script:
+  - id: display_burn_in_noise
+    mode: single
+    then:
+      - lvgl.pause:
+          show_snow: true
+      - delay: 10s
+      - lvgl.resume:
+      - lvgl.widget.redraw:
+      - globals.set:
+          id: last_burn_in_noise_ms
+          value: !lambda return millis();
+
+  - id: sht_heater_maintenance
+    mode: single
+    then:
+      - if:
+          condition:
+            lambda: return weather_station::start_sht4x_maintenance(id(indoor_sht4x));
+          then:
+            - lvgl.widget.disable: sht_heater_button
+            - lvgl.label.update:
+                id: sht_heater_button_label
+                text: "Heating / cooling down"
+            - delay: 62s
+            - lvgl.widget.enable: sht_heater_button
+            - lvgl.label.update:
+                id: sht_heater_button_label
+                text: "Run humidity sensor heater"
+          else:
+            - logger.log: "SHT4x maintenance heater cycle could not start"
+
+  - id: display_sleep
+    mode: single
+    then:
+      - globals.set:
+          id: display_transitioning
+          value: 'true'
+      - lvgl.pause:
+      - light.turn_off: display_light
+      - lambda: weather_station::send_st7796_command(id(my_display), id(display_dc_pin), 0x10);
+      - delay: 5ms
+      - globals.set:
+          id: display_is_asleep
+          value: 'true'
+      - globals.set:
+          id: display_transitioning
+          value: 'false'
+
+  - id: display_wake
+    mode: single
+    then:
+      - globals.set:
+          id: display_transitioning
+          value: 'true'
+      - lambda: weather_station::send_st7796_command(id(my_display), id(display_dc_pin), 0x11);
+      - delay: 120ms
+      - globals.set:
+          id: display_is_asleep
+          value: 'false'
+      - lvgl.resume:
+      - lvgl.widget.redraw:
+      - globals.set:
+          id: display_transitioning
+          value: 'false'
+      - globals.set:
+          id: display_last_activity_ms
+          value: !lambda return millis();
+      - lambda: weather_station::update_display_control(
+          id(room_presence).state, id(light_level).state, id(user_max_brightness),
+          id(user_screen_timeout_steps), id(display_last_activity_ms),
+          id(display_is_asleep), id(display_transitioning), id(display_light),
+          id(display_sleep), id(display_wake));
+
+# Pulling external data from Home Assistant
+sensor:
+  - platform: homeassistant
+    id: ha_outside_temp
+    entity_id: ${ha_outside_temp_entity}
+    on_value:
+      # Example logic: Trigger our custom C++ function to evaluate if it's freezing
+      - lambda: weather_station::check_ice_alert(x, id(ice_alert_led), id(ice_alert_sleep_disabled));
+      
+  - platform: homeassistant
+    id: ha_outside_humidity
+    entity_id: ${ha_outside_humidity_entity}
+
+  - platform: homeassistant
+    id: ha_outside_battery
+    entity_id: ${ha_outside_battery_entity}
+
+  - platform: homeassistant
+    id: ha_pressure
+    entity_id: ${ha_pressure_entity}
+
+  - platform: wifi_signal
+    id: wifi_signal_strength
+    update_interval: 60s
+    on_value:
+      - lvgl.label.update:
+          id: wifi_signal_level_label
+          text:
+            format: "%.0f dBm"
+            args: [x]
+            if_nan: "-- dBm"
+
+text_sensor:
+  - platform: wifi_info
+    ssid:
+      id: wifi_ssid
+      on_value:
+        - lvgl.label.update:
+            id: ssid_label
+            text: !lambda return x;
+    ip_address:
+      id: wifi_ip_address
+      on_value:
+        - lvgl.label.update:
+            id: ipaddress_label
+            text: !lambda return x;
+    mac_address:
+      id: wifi_mac_address
+      on_value:
+        - lvgl.label.update:
+            id: mac_label
+            text: !lambda return x;
+    dns_address:
+      id: wifi_dns_address
+      on_value:
+        - lvgl.label.update:
+            id: dns_label
+            text: !lambda return x;
+
+  - platform: homeassistant
+    id: ha_weather_condition
+    entity_id: ${ha_weather_entity}
+    on_value:
+      then:
+        - lvgl.image.update:
+            id: forecast_icon
+            src: !lambda return id(weather_icon_map)[x];
+        - lvgl.label.update:
+            id: forecast_condition
+            text: !lambda return id(weather_condition_label_map)[x];
+
+  - platform: homeassistant
+    id: ha_moon_phase
+    entity_id: ${ha_moon_phase_entity}
+    on_value:
+      - lvgl.label.update:
+          id: moon_phase
+          text: !lambda |-
+            if (x == "new_moon") return std::string("\U000F0F64");
+            if (x == "waxing_crescent") return std::string("\U000F0F67");
+            if (x == "first_quarter") return std::string("\U000F0F61");
+            if (x == "waxing_gibbous") return std::string("\U000F0F68");
+            if (x == "full_moon") return std::string("\U000F0F62");
+            if (x == "waning_gibbous") return std::string("\U000F0F66");
+            if (x == "last_quarter") return std::string("\U000F0F63");
+            if (x == "waning_crescent") return std::string("\U000F0F65");
+            return std::string("");
+
+# Auto-brightness logic
+interval:
+  - interval: 2s
+    then:
+      - lambda: weather_station::update_display_control(
+          id(room_presence).state, id(light_level).state, id(user_max_brightness),
+          id(user_screen_timeout_steps), id(display_last_activity_ms),
+          id(display_is_asleep), id(display_transitioning), id(display_light),
+          id(display_sleep), id(display_wake));
+      - lvgl.label.update:
+          id: outside_temp_value
+          text:
+            format: "%.1f°"
+            args: [id(ha_outside_temp).state]
+            if_nan: "--.-°"
+      - lvgl.label.update:
+          id: outside_humidity_value
+          text:
+            format: "RH %.0f%%"
+            args: [id(ha_outside_humidity).state]
+            if_nan: "RH --%"
+      - lvgl.label.update:
+          id: outside_battery_value
+          text:
+            format: "%.0f%%"
+            args: [id(ha_outside_battery).state]
+            if_nan: "--%"
+      - lvgl.label.update:
+          id: outside_battery_icon
+          text: !lambda |-
+            const float level = id(ha_outside_battery).state;
+            if (std::isnan(level)) return std::string("\U000F0079");
+            if (level <= 15.0f) return std::string("\U000F007A");
+            if (level <= 30.0f) return std::string("\U000F007B");
+            if (level <= 50.0f) return std::string("\U000F007D");
+            if (level <= 70.0f) return std::string("\U000F007F");
+            if (level <= 90.0f) return std::string("\U000F0081");
+            return std::string("\U000F0079");
+      - lvgl.label.update:
+          id: pressure_value
+          text:
+            format: "%.0f hPa"
+            args: [id(ha_pressure).state]
+            if_nan: "---- hPa"
+      - lvgl.label.update:
+          id: inside_temp_value
+          text:
+            format: "%.1f°"
+            args: [id(indoor_temp).state]
+            if_nan: "--.-°"
+      - lvgl.label.update:
+          id: inside_humidity_value
+          text:
+            format: "RH %.0f%%"
+            args: [id(indoor_humidity).state]
+            if_nan: "RH --%"
+      - lvgl.label.update:
+          id: voc_value
+          text:
+            format: "%.0f"
+            args: [id(indoor_voc).state]
+            if_nan: "---"
+      - lvgl.label.update:
+          id: nox_value
+          text:
+            format: "%.0f"
+            args: [id(indoor_nox).state]
+            if_nan: "---"
+
+# Sample trends once per minute. The estimator uses a ten-minute rolling
+# window, linear regression, and a deadband to avoid reacting to small jitter.
+  - interval: 60s
+    then:
+      - lvgl.label.update:
+          id: outside_temp_trend
+          text: !lambda |-
+            const int trend = weather_station::sample_temperature_trend(id(ha_outside_temp).state);
+            if (trend > 0) return std::string("\U000F005D");
+            if (trend < 0) return std::string("\U000F0045");
+            return std::string("");
+      - lvgl.label.update:
+          id: outside_humidity_trend
+          text: !lambda |-
+            const int trend = weather_station::sample_humidity_trend(id(ha_outside_humidity).state);
+            if (trend > 0) return std::string("\U000F005D");
+            if (trend < 0) return std::string("\U000F0045");
+            return std::string("");
+
+      - lambda: |-
+          weather_station::record_weather_history(
+            id(ha_outside_temp).state,
+            id(ha_outside_humidity).state,
+            id(indoor_temp).state,
+            id(indoor_humidity).state
+          );
+      - if:
+          condition:
+            lambda: return weather_station::update_air_quality_warning(
+              id(indoor_voc).state, id(indoor_nox).state);
+          then:
+            - lvgl.widget.show: air_quality_warning
+          else:
+            - lvgl.widget.hide: air_quality_warning
+      - lvgl.label.update:
+          id: outside_temp_min
+          text:
+            format: "%.1f°"
+            args: [weather_station::history_minimum(0)]
+            if_nan: "--.-°"
+      - lvgl.label.update:
+          id: outside_temp_max
+          text:
+            format: "%.1f°"
+            args: [weather_station::history_maximum(0)]
+            if_nan: "--.-°"
+      - lvgl.label.update:
+          id: outside_humidity_min
+          text:
+            format: "%.0f%%"
+            args: [weather_station::history_minimum(1)]
+            if_nan: "--%"
+      - lvgl.label.update:
+          id: outside_humidity_max
+          text:
+            format: "%.0f%%"
+            args: [weather_station::history_maximum(1)]
+            if_nan: "--%"
+      - lvgl.label.update:
+          id: inside_temp_min
+          text:
+            format: "%.1f°"
+            args: [weather_station::history_minimum(2)]
+            if_nan: "--.-°"
+      - lvgl.label.update:
+          id: inside_temp_max
+          text:
+            format: "%.1f°"
+            args: [weather_station::history_maximum(2)]
+            if_nan: "--.-°"
+      - lvgl.label.update:
+          id: inside_humidity_min
+          text:
+            format: "%.0f%%"
+            args: [weather_station::history_minimum(3)]
+            if_nan: "--%"
+      - lvgl.label.update:
+          id: inside_humidity_max
+          text:
+            format: "%.0f%%"
+            args: [weather_station::history_maximum(3)]
+            if_nan: "--%"
+      - lvgl.line.update:
+          id: outside_temp_graph
+          points:
+            - x: !lambda return weather_station::history_point_x(0, 280);
+              y: !lambda return weather_station::history_point_y(0, 0, 45);
+            - x: !lambda return weather_station::history_point_x(1, 280);
+              y: !lambda return weather_station::history_point_y(0, 1, 45);
+            - x: !lambda return weather_station::history_point_x(2, 280);
+              y: !lambda return weather_station::history_point_y(0, 2, 45);
+            - x: !lambda return weather_station::history_point_x(3, 280);
+              y: !lambda return weather_station::history_point_y(0, 3, 45);
+            - x: !lambda return weather_station::history_point_x(4, 280);
+              y: !lambda return weather_station::history_point_y(0, 4, 45);
+            - x: !lambda return weather_station::history_point_x(5, 280);
+              y: !lambda return weather_station::history_point_y(0, 5, 45);
+            - x: !lambda return weather_station::history_point_x(6, 280);
+              y: !lambda return weather_station::history_point_y(0, 6, 45);
+            - x: !lambda return weather_station::history_point_x(7, 280);
+              y: !lambda return weather_station::history_point_y(0, 7, 45);
+            - x: !lambda return weather_station::history_point_x(8, 280);
+              y: !lambda return weather_station::history_point_y(0, 8, 45);
+            - x: !lambda return weather_station::history_point_x(9, 280);
+              y: !lambda return weather_station::history_point_y(0, 9, 45);
+            - x: !lambda return weather_station::history_point_x(10, 280);
+              y: !lambda return weather_station::history_point_y(0, 10, 45);
+            - x: !lambda return weather_station::history_point_x(11, 280);
+              y: !lambda return weather_station::history_point_y(0, 11, 45);
+            - x: !lambda return weather_station::history_point_x(12, 280);
+              y: !lambda return weather_station::history_point_y(0, 12, 45);
+            - x: !lambda return weather_station::history_point_x(13, 280);
+              y: !lambda return weather_station::history_point_y(0, 13, 45);
+            - x: !lambda return weather_station::history_point_x(14, 280);
+              y: !lambda return weather_station::history_point_y(0, 14, 45);
+            - x: !lambda return weather_station::history_point_x(15, 280);
+              y: !lambda return weather_station::history_point_y(0, 15, 45);
+            - x: !lambda return weather_station::history_point_x(16, 280);
+              y: !lambda return weather_station::history_point_y(0, 16, 45);
+            - x: !lambda return weather_station::history_point_x(17, 280);
+              y: !lambda return weather_station::history_point_y(0, 17, 45);
+            - x: !lambda return weather_station::history_point_x(18, 280);
+              y: !lambda return weather_station::history_point_y(0, 18, 45);
+            - x: !lambda return weather_station::history_point_x(19, 280);
+              y: !lambda return weather_station::history_point_y(0, 19, 45);
+            - x: !lambda return weather_station::history_point_x(20, 280);
+              y: !lambda return weather_station::history_point_y(0, 20, 45);
+            - x: !lambda return weather_station::history_point_x(21, 280);
+              y: !lambda return weather_station::history_point_y(0, 21, 45);
+            - x: !lambda return weather_station::history_point_x(22, 280);
+              y: !lambda return weather_station::history_point_y(0, 22, 45);
+            - x: !lambda return weather_station::history_point_x(23, 280);
+              y: !lambda return weather_station::history_point_y(0, 23, 45);
+            - x: !lambda return weather_station::history_point_x(24, 280);
+              y: !lambda return weather_station::history_point_y(0, 24, 45);
+      - lvgl.line.update:
+          id: outside_humidity_graph
+          points:
+            - x: !lambda return weather_station::history_point_x(0, 280);
+              y: !lambda return weather_station::history_point_y(1, 0, 45);
+            - x: !lambda return weather_station::history_point_x(1, 280);
+              y: !lambda return weather_station::history_point_y(1, 1, 45);
+            - x: !lambda return weather_station::history_point_x(2, 280);
+              y: !lambda return weather_station::history_point_y(1, 2, 45);
+            - x: !lambda return weather_station::history_point_x(3, 280);
+              y: !lambda return weather_station::history_point_y(1, 3, 45);
+            - x: !lambda return weather_station::history_point_x(4, 280);
+              y: !lambda return weather_station::history_point_y(1, 4, 45);
+            - x: !lambda return weather_station::history_point_x(5, 280);
+              y: !lambda return weather_station::history_point_y(1, 5, 45);
+            - x: !lambda return weather_station::history_point_x(6, 280);
+              y: !lambda return weather_station::history_point_y(1, 6, 45);
+            - x: !lambda return weather_station::history_point_x(7, 280);
+              y: !lambda return weather_station::history_point_y(1, 7, 45);
+            - x: !lambda return weather_station::history_point_x(8, 280);
+              y: !lambda return weather_station::history_point_y(1, 8, 45);
+            - x: !lambda return weather_station::history_point_x(9, 280);
+              y: !lambda return weather_station::history_point_y(1, 9, 45);
+            - x: !lambda return weather_station::history_point_x(10, 280);
+              y: !lambda return weather_station::history_point_y(1, 10, 45);
+            - x: !lambda return weather_station::history_point_x(11, 280);
+              y: !lambda return weather_station::history_point_y(1, 11, 45);
+            - x: !lambda return weather_station::history_point_x(12, 280);
+              y: !lambda return weather_station::history_point_y(1, 12, 45);
+            - x: !lambda return weather_station::history_point_x(13, 280);
+              y: !lambda return weather_station::history_point_y(1, 13, 45);
+            - x: !lambda return weather_station::history_point_x(14, 280);
+              y: !lambda return weather_station::history_point_y(1, 14, 45);
+            - x: !lambda return weather_station::history_point_x(15, 280);
+              y: !lambda return weather_station::history_point_y(1, 15, 45);
+            - x: !lambda return weather_station::history_point_x(16, 280);
+              y: !lambda return weather_station::history_point_y(1, 16, 45);
+            - x: !lambda return weather_station::history_point_x(17, 280);
+              y: !lambda return weather_station::history_point_y(1, 17, 45);
+            - x: !lambda return weather_station::history_point_x(18, 280);
+              y: !lambda return weather_station::history_point_y(1, 18, 45);
+            - x: !lambda return weather_station::history_point_x(19, 280);
+              y: !lambda return weather_station::history_point_y(1, 19, 45);
+            - x: !lambda return weather_station::history_point_x(20, 280);
+              y: !lambda return weather_station::history_point_y(1, 20, 45);
+            - x: !lambda return weather_station::history_point_x(21, 280);
+              y: !lambda return weather_station::history_point_y(1, 21, 45);
+            - x: !lambda return weather_station::history_point_x(22, 280);
+              y: !lambda return weather_station::history_point_y(1, 22, 45);
+            - x: !lambda return weather_station::history_point_x(23, 280);
+              y: !lambda return weather_station::history_point_y(1, 23, 45);
+            - x: !lambda return weather_station::history_point_x(24, 280);
+              y: !lambda return weather_station::history_point_y(1, 24, 45);
+      - lvgl.line.update:
+          id: inside_temp_graph
+          points:
+            - x: !lambda return weather_station::history_point_x(0, 280);
+              y: !lambda return weather_station::history_point_y(2, 0, 45);
+            - x: !lambda return weather_station::history_point_x(1, 280);
+              y: !lambda return weather_station::history_point_y(2, 1, 45);
+            - x: !lambda return weather_station::history_point_x(2, 280);
+              y: !lambda return weather_station::history_point_y(2, 2, 45);
+            - x: !lambda return weather_station::history_point_x(3, 280);
+              y: !lambda return weather_station::history_point_y(2, 3, 45);
+            - x: !lambda return weather_station::history_point_x(4, 280);
+              y: !lambda return weather_station::history_point_y(2, 4, 45);
+            - x: !lambda return weather_station::history_point_x(5, 280);
+              y: !lambda return weather_station::history_point_y(2, 5, 45);
+            - x: !lambda return weather_station::history_point_x(6, 280);
+              y: !lambda return weather_station::history_point_y(2, 6, 45);
+            - x: !lambda return weather_station::history_point_x(7, 280);
+              y: !lambda return weather_station::history_point_y(2, 7, 45);
+            - x: !lambda return weather_station::history_point_x(8, 280);
+              y: !lambda return weather_station::history_point_y(2, 8, 45);
+            - x: !lambda return weather_station::history_point_x(9, 280);
+              y: !lambda return weather_station::history_point_y(2, 9, 45);
+            - x: !lambda return weather_station::history_point_x(10, 280);
+              y: !lambda return weather_station::history_point_y(2, 10, 45);
+            - x: !lambda return weather_station::history_point_x(11, 280);
+              y: !lambda return weather_station::history_point_y(2, 11, 45);
+            - x: !lambda return weather_station::history_point_x(12, 280);
+              y: !lambda return weather_station::history_point_y(2, 12, 45);
+            - x: !lambda return weather_station::history_point_x(13, 280);
+              y: !lambda return weather_station::history_point_y(2, 13, 45);
+            - x: !lambda return weather_station::history_point_x(14, 280);
+              y: !lambda return weather_station::history_point_y(2, 14, 45);
+            - x: !lambda return weather_station::history_point_x(15, 280);
+              y: !lambda return weather_station::history_point_y(2, 15, 45);
+            - x: !lambda return weather_station::history_point_x(16, 280);
+              y: !lambda return weather_station::history_point_y(2, 16, 45);
+            - x: !lambda return weather_station::history_point_x(17, 280);
+              y: !lambda return weather_station::history_point_y(2, 17, 45);
+            - x: !lambda return weather_station::history_point_x(18, 280);
+              y: !lambda return weather_station::history_point_y(2, 18, 45);
+            - x: !lambda return weather_station::history_point_x(19, 280);
+              y: !lambda return weather_station::history_point_y(2, 19, 45);
+            - x: !lambda return weather_station::history_point_x(20, 280);
+              y: !lambda return weather_station::history_point_y(2, 20, 45);
+            - x: !lambda return weather_station::history_point_x(21, 280);
+              y: !lambda return weather_station::history_point_y(2, 21, 45);
+            - x: !lambda return weather_station::history_point_x(22, 280);
+              y: !lambda return weather_station::history_point_y(2, 22, 45);
+            - x: !lambda return weather_station::history_point_x(23, 280);
+              y: !lambda return weather_station::history_point_y(2, 23, 45);
+            - x: !lambda return weather_station::history_point_x(24, 280);
+              y: !lambda return weather_station::history_point_y(2, 24, 45);
+      - lvgl.line.update:
+          id: inside_humidity_graph
+          points:
+            - x: !lambda return weather_station::history_point_x(0, 280);
+              y: !lambda return weather_station::history_point_y(3, 0, 45);
+            - x: !lambda return weather_station::history_point_x(1, 280);
+              y: !lambda return weather_station::history_point_y(3, 1, 45);
+            - x: !lambda return weather_station::history_point_x(2, 280);
+              y: !lambda return weather_station::history_point_y(3, 2, 45);
+            - x: !lambda return weather_station::history_point_x(3, 280);
+              y: !lambda return weather_station::history_point_y(3, 3, 45);
+            - x: !lambda return weather_station::history_point_x(4, 280);
+              y: !lambda return weather_station::history_point_y(3, 4, 45);
+            - x: !lambda return weather_station::history_point_x(5, 280);
+              y: !lambda return weather_station::history_point_y(3, 5, 45);
+            - x: !lambda return weather_station::history_point_x(6, 280);
+              y: !lambda return weather_station::history_point_y(3, 6, 45);
+            - x: !lambda return weather_station::history_point_x(7, 280);
+              y: !lambda return weather_station::history_point_y(3, 7, 45);
+            - x: !lambda return weather_station::history_point_x(8, 280);
+              y: !lambda return weather_station::history_point_y(3, 8, 45);
+            - x: !lambda return weather_station::history_point_x(9, 280);
+              y: !lambda return weather_station::history_point_y(3, 9, 45);
+            - x: !lambda return weather_station::history_point_x(10, 280);
+              y: !lambda return weather_station::history_point_y(3, 10, 45);
+            - x: !lambda return weather_station::history_point_x(11, 280);
+              y: !lambda return weather_station::history_point_y(3, 11, 45);
+            - x: !lambda return weather_station::history_point_x(12, 280);
+              y: !lambda return weather_station::history_point_y(3, 12, 45);
+            - x: !lambda return weather_station::history_point_x(13, 280);
+              y: !lambda return weather_station::history_point_y(3, 13, 45);
+            - x: !lambda return weather_station::history_point_x(14, 280);
+              y: !lambda return weather_station::history_point_y(3, 14, 45);
+            - x: !lambda return weather_station::history_point_x(15, 280);
+              y: !lambda return weather_station::history_point_y(3, 15, 45);
+            - x: !lambda return weather_station::history_point_x(16, 280);
+              y: !lambda return weather_station::history_point_y(3, 16, 45);
+            - x: !lambda return weather_station::history_point_x(17, 280);
+              y: !lambda return weather_station::history_point_y(3, 17, 45);
+            - x: !lambda return weather_station::history_point_x(18, 280);
+              y: !lambda return weather_station::history_point_y(3, 18, 45);
+            - x: !lambda return weather_station::history_point_x(19, 280);
+              y: !lambda return weather_station::history_point_y(3, 19, 45);
+            - x: !lambda return weather_station::history_point_x(20, 280);
+              y: !lambda return weather_station::history_point_y(3, 20, 45);
+            - x: !lambda return weather_station::history_point_x(21, 280);
+              y: !lambda return weather_station::history_point_y(3, 21, 45);
+            - x: !lambda return weather_station::history_point_x(22, 280);
+              y: !lambda return weather_station::history_point_y(3, 22, 45);
+            - x: !lambda return weather_station::history_point_x(23, 280);
+              y: !lambda return weather_station::history_point_y(3, 23, 45);
+            - x: !lambda return weather_station::history_point_x(24, 280);
+              y: !lambda return weather_station::history_point_y(3, 24, 45);
+
+
+# Keep the clock widgets as plain text in lvgl_ui.yaml so the visual editor can
+# import them. ESPHome applies these runtime-formatted values from HA time.
+  - interval: 1s
+    then:
+      - lvgl.label.update:
+          id: clock_time
+          text:
+            time_format: "%H:%M"
+            time: ha_time
+      - lvgl.label.update:
+          id: clock_seconds
+          text:
+            time_format: "%S"
+            time: ha_time
+      - lvgl.label.update:
+          id: clock_date
+          text:
+            time_format: "%d/%m/%Y"
+            time: ha_time
+
+  - interval: 1min
+    then:
+      - if:
+          condition:
+            lambda: return id(room_presence).state;
+          then:
+            - globals.set:
+                id: last_burn_in_noise_ms
+                value: !lambda return millis();
+          else:
+            - if:
+                condition:
+                  lambda: return id(user_screen_timeout_steps) == 0 &&
+                    !id(display_is_asleep) &&
+                    static_cast<uint32_t>(millis() - id(last_burn_in_noise_ms)) >= 3600000UL;
+                then:
+                  - script.execute: display_burn_in_noise

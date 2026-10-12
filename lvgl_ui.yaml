@@ -1,0 +1,865 @@
+font:
+  - file: "gfonts://JetBrains Mono"
+    id: jetbrains_mono_40
+    size: 40
+    bpp: 4
+    glyphsets: [GF_Latin_Core]
+  - file: "gfonts://JetBrains Mono"
+    id: jetbrains_mono_60
+    size: 60
+    bpp: 4
+    glyphsets: [GF_Latin_Core]
+  - file:
+      type: gfonts
+      family: Montserrat
+      weight: 500
+    id: montserrat_60
+    size: 60
+    bpp: 4
+    glyphsets: [GF_Latin_Core]
+  - file:
+      url: "https://cdn.jsdelivr.net/npm/@mdi/font@7.4.47/fonts/materialdesignicons-webfont.ttf"
+      type: web
+    id: mdi_icons_20
+    size: 20
+    bpp: 4
+    glyphs:
+      - "\U000F007A" # battery-10
+      - "\U000F007B" # battery-20
+      - "\U000F007D" # battery-40
+      - "\U000F007F" # battery-60
+      - "\U000F0081" # battery-80
+      - "\U000F0079" # battery (full)
+  - file:
+      url: "https://cdn.jsdelivr.net/npm/@mdi/font@7.4.47/fonts/materialdesignicons-webfont.ttf"
+      type: web
+    id: mdi_icons_24
+    size: 24
+    glyphs: [
+      "\U000F005D",  # Arrow Up
+      "\U000F0045",  # Arrow Down
+      "\U000F012A",  # Chart
+      "\U000F0026",  # Alert
+      "\U000F0F64",  # Moon New
+      "\U000F0F67",  # Moon Waxing Crescent
+      "\U000F0F61",  # Moon First Quarter
+      "\U000F0F68",  # Moon Waxing Gibbous
+      "\U000F0F62",  # Moon Full
+      "\U000F0F66",  # Moon Waning Gibbous
+      "\U000F0F63",  # Moon Last Quarter
+      "\U000F0F65",  # Moon Waning Crescent
+    ]
+  - file:
+      url: "https://cdn.jsdelivr.net/npm/@mdi/font@7.4.47/fonts/materialdesignicons-webfont.ttf"
+      type: web
+    id: mdi_icons_45
+    size: 45
+    glyphs: [
+      "\U000F005D",  # Arrow Up
+      "\U000F0045",  # Arrow Down
+    ]
+  - file:
+      url: "https://cdn.jsdelivr.net/npm/@mdi/font@7.4.47/fonts/materialdesignicons-webfont.ttf"
+      type: web
+    id: mdi_icons_60
+    size: 60
+    glyphs: [
+      "\U000F0599",  # Sunny
+    ]
+
+lvgl:
+  top_layer:
+    scrollbar_mode: "OFF"
+    widgets:
+      - button:
+          id: widget_1791880552191_lqzct01dw
+          x: 10
+          y: 434
+          width: 90
+          height: 40
+          checkable: true
+          state:
+            checked: true
+          on_click:
+            - lvgl.page.show: canvas_1
+            - lvgl.widget.update:
+                id: widget_1791880552191_lqzct01dw
+                state:
+                  checked: true
+            - lvgl.widget.update:
+                id: [widget_1791880567175_y0cpmxap0, widget_1791880576425_2dqghgter]
+                state:
+                  checked: false
+          widgets:
+            - label:
+                id: widget_1791880552191_1ysyv20qt
+                x: 0
+                y: 0
+                align: CENTER
+                text: "\uF015"
+                text_font: montserrat_24
+                text_align: CENTER
+                text_color: 0xFFFFFF
+      - button:
+          id: widget_1791880567175_y0cpmxap0
+          x: 115
+          y: 434
+          width: 90
+          height: 40
+          checkable: true
+          on_click:
+            - lvgl.page.show: canvas_5
+            - lvgl.widget.update:
+                id: widget_1791880567175_y0cpmxap0
+                state:
+                  checked: true
+            - lvgl.widget.update:
+                id: [widget_1791880552191_lqzct01dw, widget_1791880576425_2dqghgter]
+                state:
+                  checked: false
+          widgets:
+            - label:
+                id: widget_1791880567175_3b43j6y36
+                x: 0
+                y: 0
+                align: CENTER
+                text: "\U000F012A"
+                text_font: mdi_icons_24
+                text_align: CENTER
+                text_color: 0xFFFFFF
+      - button:
+          id: widget_1791880576425_2dqghgter
+          x: 220
+          y: 434
+          width: 90
+          height: 40
+          checkable: true
+          on_click:
+            - lvgl.page.show: canvas_6
+            - lvgl.widget.update:
+                id: widget_1791880576425_2dqghgter
+                state:
+                  checked: true
+            - lvgl.widget.update:
+                id: [widget_1791880552191_lqzct01dw, widget_1791880567175_y0cpmxap0]
+                state:
+                  checked: false
+          widgets:
+            - label:
+                id: widget_1791880576426_qcntgass6
+                x: 0
+                y: 0
+                align: CENTER
+                text: "\uF013"
+                text_font: montserrat_24
+                text_align: CENTER
+                text_color: 0xFFFFFF
+  pages:
+    - id: canvas_1
+      bg_color: 0x101820
+      bg_opa: 100%
+      pad_all: 0
+      scrollbar_mode: "OFF"
+      widgets:
+        - button:
+            id: outside_block
+            x: 10
+            y: 10
+            width: 300
+            height: 128
+            bg_color: 0x1C2A34
+            border_width: 1
+            border_color: 0x3A5968
+            radius: 12
+            shadow_width: 0
+            widgets:
+              - label:
+                  id: lv_label_0
+                  x: 0
+                  y: 0
+                  text: "OUTSIDE"
+                  text_color: 0x8BA6B2
+                  text_font: montserrat_14
+              - label:
+                  id: outside_temp_value
+                  x: -2
+                  y: 19
+                  text: "--.-°"
+                  text_color: 0xF4F7F8
+                  text_align: LEFT
+                  text_font: montserrat_60
+              - label:
+                  id: outside_humidity_value
+                  x: 2
+                  y: 90
+                  text: "RH --%"
+                  text_color: 0x69C8D4
+                  text_font: montserrat_16
+              - label:
+                  id: outside_battery_value
+                  x: 233
+                  y: 0
+                  width: 44
+                  text: "100%"
+                  text_color: 0xD7E4E8
+                  text_align: RIGHT
+                  text_font: montserrat_16
+              - label:
+                  id: lv_label_1
+                  x: 153
+                  y: 92
+                  text: "PRESS"
+                  text_color: 0x8BA6B2
+                  text_font: montserrat_12
+              - label:
+                  id: pressure_value
+                  x: 191
+                  y: 90
+                  width: 88
+                  text: "---- hPa"
+                  text_color: 0xD7E4E8
+                  text_align: RIGHT
+                  text_font: montserrat_16
+              - label:
+                  id: outside_humidity_trend
+                  x: 73
+                  y: 87
+                  text: "\U000F005D"
+                  text_font: mdi_icons_24
+                  text_align: CENTER
+                  text_color: 0xFFFFFF
+              - label:
+                  id: outside_temp_trend
+                  x: 123
+                  y: 27
+                  text: "\U000F005D"
+                  text_font: mdi_icons_45
+                  text_align: CENTER
+                  text_color: 0xFFFFFF
+              - label:
+                  id: outside_battery_icon
+                  x: 230
+                  y: -2
+                  text: "\U000F0079"
+                  text_font: mdi_icons_20
+                  text_align: CENTER
+                  text_color: 0xFFFFFF
+                  transform_rotation: 90
+
+        - obj:
+            id: lv_obj_2
+            x: 10
+            y: 146
+            width: 300
+            height: 85
+            bg_color: 0x17252D
+            border_width: 1
+            border_color: 0x314954
+            radius: 12
+            pad_all: 0
+            widgets:
+              - image:
+                  id: forecast_icon
+                  x: 3
+                  y: 5
+                  width: 60
+                  height: 60
+                  src: weather_icon_not_available
+              - label:
+                  id: forecast_condition
+                  x: 83
+                  y: 30
+                  width: 180
+                  height: 45
+                  text: "Partly cloudy"
+                  text_color: 0xF4F7F8
+                  text_font: montserrat_20
+              - label:
+                  id: moon_phase
+                  x: 258
+                  y: 48
+                  width: 40
+                  height: 30
+                  text: ""
+                  text_color: 0xA8B9C0
+                  text_align: CENTER
+                  text_font: mdi_icons_24
+
+        - button:
+            id: inside_block
+            x: 10
+            y: 239
+            width: 300
+            height: 100
+            bg_color: 0x1C2A34
+            border_width: 1
+            border_color: 0x3A5968
+            radius: 12
+            shadow_width: 0
+            widgets:
+              - label:
+                  id: lv_label_4
+                  x: 0
+                  y: -1
+                  text: "INDOOR"
+                  text_color: 0x8BA6B2
+                  text_font: montserrat_14
+              - label:
+                  id: inside_temp_value
+                  x: 0
+                  y: 21
+                  text: "--.-°"
+                  text_color: 0xF4F7F8
+                  text_font: montserrat_36
+              - label:
+                  id: inside_humidity_value
+                  x: 2
+                  y: 64
+                  text: "RH --%"
+                  text_color: 0x69C8D4
+                  text_font: montserrat_14
+              - label:
+                  id: lv_label_5
+                  x: 148
+                  y: 1
+                  text: "AIR QUALITY"
+                  text_color: 0x8BA6B2
+                  text_font: montserrat_12
+              - label:
+                  id: lv_label_6
+                  x: 148
+                  y: 34
+                  text: "VOC"
+                  text_color: 0x8BA6B2
+                  text_font: montserrat_12
+              - label:
+                  id: voc_value
+                  x: 195
+                  y: 31
+                  width: 78
+                  text: "---"
+                  text_color: 0x91D4A2
+                  text_align: RIGHT
+                  text_font: montserrat_18
+              - label:
+                  id: lv_label_7
+                  x: 148
+                  y: 64
+                  text: "NOx"
+                  text_color: 0x8BA6B2
+                  text_font: montserrat_12
+              - label:
+                  id: nox_value
+                  x: 195
+                  y: 61
+                  width: 78
+                  text: "---"
+                  text_color: 0xE7B879
+                  text_align: RIGHT
+                  text_font: montserrat_18
+              - label:
+                  id: air_quality_warning
+                  x: 250
+                  y: -4
+                  hidden: true
+                  text: "\U000F0026"
+                  text_font: mdi_icons_24
+                  text_align: CENTER
+                  text_color: 0xFFCC00
+
+        - obj:
+            id: lv_obj_8
+            x: 10
+            y: 343
+            width: 300
+            height: 90
+            bg_color: 0x101820
+            border_width: 0
+            pad_all: 0
+            widgets:
+              - label:
+                  id: clock_time
+                  x: 0
+                  y: -14
+                  width: 190
+                  align: CENTER
+                  text: "00:00"
+                  text_color: 0xF4F7F8
+                  text_align: CENTER
+                  text_font: jetbrains_mono_60
+              - label:
+                  id: clock_seconds
+                  x: 245
+                  y: 13
+                  text: "00"
+                  text_color: 0x69C8D4
+                  text_align: CENTER
+                  text_font: jetbrains_mono_40
+              - label:
+                  id: clock_date
+                  x: 0
+                  y: 66
+                  width: 300
+                  text: "dd/mm/yyyy"
+                  text_color: 0x8BA6B2
+                  text_align: CENTER
+                  text_font: montserrat_16
+
+    - id: canvas_5
+      bg_color: 0x101820
+      pad_all: 0
+      scrollbar_mode: "OFF"
+      widgets:
+        - label:
+            id: stats_page_title
+            x: 0
+            y: 14
+            height: 15
+            align: TOP_MID
+            text: "LAST 24 HOURS"
+            text_color: 0x8BA6B2
+            text_align: RIGHT
+            text_font: montserrat_16
+
+        - obj:
+            id: lv_obj_1
+            x: 8
+            y: 44
+            width: 304
+            height: 188
+            bg_color: 0x1C2A34
+            border_width: 1
+            border_color: 0x3A5968
+            radius: 12
+            pad_all: 0
+            widgets:
+              - label:
+                  id: lv_label_2
+                  x: 12
+                  y: 7
+                  text: "OUTSIDE"
+                  text_color: 0x8BA6B2
+                  text_font: montserrat_14
+              - label:
+                  id: outside_temp_min
+                  x: 14
+                  y: 31
+                  width: 90
+                  text: "--.-°"
+                  text_color: 0xF3C969
+                  text_font: montserrat_14
+              - label:
+                  id: outside_temp_max
+                  x: 202
+                  y: 31
+                  width: 88
+                  text: "--.-°"
+                  text_color: 0xF3C969
+                  text_align: RIGHT
+                  text_font: montserrat_14
+              - line:
+                  id: outside_temp_graph
+                  x: 12
+                  y: 50
+                  width: 280
+                  height: 45
+                  points:
+                    - 0, 24
+                    - 12, 21
+                    - 23, 23
+                    - 35, 18
+                    - 47, 20
+                    - 58, 15
+                    - 70, 22
+                    - 81, 13
+                    - 93, 17
+                    - 105, 11
+                    - 116, 19
+                    - 128, 14
+                    - 140, 21
+                    - 151, 24
+                    - 163, 18
+                    - 174, 25
+                    - 186, 16
+                    - 198, 12
+                    - 209, 20
+                    - 221, 22
+                    - 233, 16
+                    - 244, 21
+                    - 256, 14
+                    - 267, 18
+                    - 279, 10
+                  line_color: 0xF3C969
+                  line_rounded: true
+              - label:
+                  id: outside_humidity_min
+                  x: 14
+                  y: 110
+                  width: 90
+                  text: "--%"
+                  text_color: 0x69C8D4
+                  text_font: montserrat_14
+              - label:
+                  id: outside_humidity_max
+                  x: 202
+                  y: 110
+                  width: 88
+                  text: "--%"
+                  text_color: 0x69C8D4
+                  text_align: RIGHT
+                  text_font: montserrat_14
+              - line:
+                  id: outside_humidity_graph
+                  x: 10
+                  y: 130
+                  width: 280
+                  height: 45
+                  points:
+                    - 0, 26
+                    - 12, 23
+                    - 23, 25
+                    - 35, 20
+                    - 47, 22
+                    - 58, 17
+                    - 70, 24
+                    - 81, 15
+                    - 93, 19
+                    - 105, 13
+                    - 116, 21
+                    - 128, 16
+                    - 140, 23
+                    - 151, 26
+                    - 163, 20
+                    - 174, 27
+                    - 186, 18
+                    - 198, 14
+                    - 209, 22
+                    - 221, 24
+                    - 233, 18
+                    - 244, 23
+                    - 256, 16
+                    - 267, 20
+                    - 279, 12
+                  line_color: 0x69C8D4
+                  line_rounded: true
+
+        - obj:
+            id: lv_obj_3
+            x: 8
+            y: 242
+            width: 304
+            height: 188
+            bg_color: 0x1C2A34
+            border_width: 1
+            border_color: 0x3A5968
+            radius: 12
+            pad_all: 0
+            widgets:
+              - label:
+                  id: stats_indoor_title
+                  x: 12
+                  y: 7
+                  text: "INDOOR"
+                  text_color: 0x8BA6B2
+                  text_font: montserrat_14
+              - label:
+                  id: inside_temp_min
+                  x: 14
+                  y: 31
+                  width: 90
+                  text: "--.-°"
+                  text_color: 0xF3C969
+                  text_font: montserrat_14
+              - label:
+                  id: inside_temp_max
+                  x: 202
+                  y: 31
+                  width: 88
+                  text: "--.-°"
+                  text_color: 0xF3C969
+                  text_align: RIGHT
+                  text_font: montserrat_14
+              - line:
+                  id: inside_temp_graph
+                  x: 12
+                  y: 50
+                  width: 280
+                  height: 45
+                  points:
+                    - 0, 24
+                    - 12, 21
+                    - 23, 23
+                    - 35, 18
+                    - 47, 20
+                    - 58, 15
+                    - 70, 22
+                    - 81, 13
+                    - 93, 17
+                    - 105, 11
+                    - 116, 19
+                    - 128, 14
+                    - 140, 21
+                    - 151, 24
+                    - 163, 18
+                    - 174, 25
+                    - 186, 16
+                    - 198, 12
+                    - 209, 20
+                    - 221, 22
+                    - 233, 16
+                    - 244, 21
+                    - 256, 14
+                    - 267, 18
+                    - 279, 10
+                  line_color: 0xF3C969
+                  line_rounded: true
+              - label:
+                  id: inside_humidity_min
+                  x: 14
+                  y: 110
+                  width: 90
+                  text: "--%"
+                  text_color: 0x69C8D4
+                  text_font: montserrat_14
+              - label:
+                  id: inside_humidity_max
+                  x: 202
+                  y: 110
+                  width: 88
+                  text: "--%"
+                  text_color: 0x69C8D4
+                  text_align: RIGHT
+                  text_font: montserrat_14
+              - line:
+                  id: inside_humidity_graph
+                  x: 12
+                  y: 130
+                  width: 280
+                  height: 45
+                  points:
+                    - 0, 26
+                    - 12, 23
+                    - 23, 25
+                    - 35, 20
+                    - 47, 22
+                    - 58, 17
+                    - 70, 24
+                    - 81, 15
+                    - 93, 19
+                    - 105, 13
+                    - 116, 21
+                    - 128, 16
+                    - 140, 23
+                    - 151, 26
+                    - 163, 20
+                    - 174, 27
+                    - 186, 18
+                    - 198, 14
+                    - 209, 22
+                    - 221, 24
+                    - 233, 18
+                    - 244, 23
+                    - 256, 16
+                    - 267, 20
+                    - 279, 12
+                  line_color: 0x69C8D4
+                  line_rounded: true
+
+    - id: canvas_6
+      bg_color: 0x111827
+      pad_all: 0
+      scrollbar_mode: "OFF"
+      widgets:
+        - label:
+            id: widget_1791880824956_varq58hjw
+            x: 0
+            y: 14
+            height: 15
+            align: TOP_MID
+            text: "SETTINGS"
+            text_color: 0x8BA6B2
+            text_align: CENTER
+            text_font: montserrat_16
+
+        - label:
+            id: lv_label_31
+            x: 10
+            y: 104
+            height: 15
+            text: "Screen Timeout"
+            text_color: 0xFFFFFF
+
+        - label:
+            id: widget_1791883851644_n112jxq6z
+            x: 10
+            y: 45
+            height: 15
+            text: "Screen Brightness"
+            text_color: 0xFFFFFF
+
+        - slider:
+            id: screen_timeout_slider
+            x: 30
+            y: 138
+            width: 260
+            height: 20
+            value: 2
+            min_value: 0
+            max_value: 10
+            radius: 9999
+            on_value:
+              - globals.set:
+                  id: user_screen_timeout_steps
+                  value: !lambda return static_cast<int>(x);
+
+        - slider:
+            id: max_screen_brightness_slider
+            x: 30
+            y: 70
+            width: 260
+            height: 20
+            value: 100
+            min_value: 10
+            max_value: 150
+            radius: 9999
+            on_value:
+              - globals.set:
+                  id: user_max_brightness
+                  value: !lambda return static_cast<float>(x) / 100.0f;
+
+        - checkbox:
+            id: ice_alert_sleep_checkbox
+            x: 10
+            y: 180
+            text: "Disable ice alert at night"
+            pad_column: 10
+            text_color: 0xFFFFFF
+            on_value:
+              - globals.set:
+                  id: ice_alert_sleep_disabled
+                  value: !lambda return x;
+              - lambda: weather_station::check_ice_alert(
+                  id(ha_outside_temp).state, id(ice_alert_led), x);
+
+        - button:
+            id: sht_heater_button
+            x: 10
+            y: 210
+            width: 300
+            height: 40
+            on_click:
+              - script.execute: sht_heater_maintenance
+            widgets:
+              - label:
+                  id: sht_heater_button_label
+                  align: CENTER
+                  text: "Run humidity sensor heater"
+
+        - obj:
+            id: lv_obj_40
+            x: 10
+            y: 310
+            width: 300
+            height: 115
+            bg_color: 0x1C2A34
+            border_width: 1
+            border_color: 0x3A5968
+            pad_all: 0
+            widgets:
+              - label:
+                  id: lv_label_41
+                  x: 5
+                  y: 10
+                  text: "SSID:"
+                  text_color: 0x8BA6B2
+              - label:
+                  id: ssid_label
+                  x: 100
+                  y: 10
+                  width: 185
+                  text: "Label"
+                  text_color: 0xFFFFFF
+
+              - label:
+                  id: ipaddress_label
+                  x: 100
+                  y: 35
+                  width: 185
+                  text: "Label"
+                  text_color: 0xFFFFFF
+                  long_mode: SCROLL_CIRCULAR
+              - label:
+                  id: mac_label
+                  x: 100
+                  y: 60
+                  width: 185
+                  text: "Label"
+                  text_color: 0xFFFFFF
+              - label:
+                  id: dns_label
+                  x: 100
+                  y: 85
+                  width: 185
+                  text: "Label"
+                  text_color: 0xFFFFFF
+                  long_mode: SCROLL_CIRCULAR
+              - label:
+                  id: lv_label_43
+                  x: 5
+                  y: 35
+                  text: "IP Address:"
+                  text_color: 0x8BA6B2
+              - label:
+                  id: widget_1791881865063_7mrzfpuay
+                  x: 5
+                  y: 60
+                  text: "MAC:"
+                  text_color: 0x8BA6B2
+              - label:
+                  id: widget_1791881903033_m45jio9oi
+                  x: 6
+                  y: 85
+                  text: "DNS:"
+                  text_color: 0x8BA6B2
+
+        - obj:
+            id: lv_obj_45
+            x: 10
+            y: 260
+            width: 300
+            height: 40
+            bg_color: 0xFFFFFF
+            bg_opa: 0%
+            border_width: 0
+            border_color: 0xE0E0E0
+            border_opa: 0%
+            pad_all: 0
+            widgets:
+              - label:
+                  id: lv_icon_36
+                  x: 9
+                  y: 7
+                  text: "\uF1EB"
+                  text_font: montserrat_24
+                  text_align: CENTER
+                  text_color: 0xFFFFFF
+              - label:
+                  id: wifi_signal_level_label
+                  x: 55
+                  y: 12
+                  width: 120
+                  text: "Label"
+                  text_color: 0xFFFFFF
+
+  on_boot:
+    then:
+      - lvgl.slider.update:
+          id: screen_timeout_slider
+          value: !lambda return id(user_screen_timeout_steps);
+      - lvgl.slider.update:
+          id: max_screen_brightness_slider
+          value: !lambda return static_cast<int>(id(user_max_brightness) * 100.0f);
+      - lvgl.checkbox.update:
+          id: ice_alert_sleep_checkbox
+          state:
+            checked: !lambda return id(ice_alert_sleep_disabled);

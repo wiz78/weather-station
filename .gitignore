@@ -1,0 +1,15 @@
+# ESPHome build files
+.esphome/
+build/
+*.bin
+*.elf
+
+# Scratch and notes directory
+scratch/
+
+# OS generated files
+.DS_Store
+._*
+
+# Local config
+my_weather_station.yaml

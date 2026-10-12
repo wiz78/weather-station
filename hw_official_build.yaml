@@ -1,0 +1,154 @@
+# Hardware Definitions for the Official Weather Station Build
+# Contains configuration for the specific sensors and display hardware.
+
+substitutions:
+  # I2C Pins (Update these based on your actual wiring)
+  i2c_sda: "4"
+  i2c_scl: "5"
+  
+  # SPI / Display Pins (ST7796S)
+  spi_clk: "12"
+  spi_mosi: "11"
+  spi_miso: "13"
+  disp_cs: "10"
+  disp_dc: "9"
+  disp_rst: "14"
+  disp_bl: "21"
+  
+  # LD2410 UART Pins
+  uart_tx: "17"
+  uart_rx: "18"
+
+  # Touch Screen Pins (I2C is shared with sensors)
+  touch_int_pin: "2" # Update with your actual interrupt pin
+  touch_rst_pin: "1" # Wire the FT6336U RST pin here; update to match your wiring
+
+  # LED Pin for Ice Alert
+  ice_alert_led_pin: "16"
+
+i2c:
+  sda: ${i2c_sda}
+  scl: ${i2c_scl}
+  scan: true
+  id: i2c_bus
+
+spi:
+  clk_pin: ${spi_clk}
+  mosi_pin: ${spi_mosi}
+  miso_pin: ${spi_miso}
+
+uart:
+  tx_pin: ${uart_tx}
+  rx_pin: ${uart_rx}
+  baud_rate: 256000
+  parity: NONE
+  stop_bits: 1
+  id: ld2410_uart
+
+ld2410:
+  uart_id: ld2410_uart
+
+# --- SENSORS ---
+sensor:
+  # Indoor Temp/Humidity
+  - platform: sht4x
+    id: indoor_sht4x
+    temperature:
+      id: indoor_temp
+      name: "Indoor Temperature"
+    humidity:
+      id: indoor_humidity
+      name: "Indoor Humidity"
+    update_interval: 60s
+
+  # VOC / AQI
+  - platform: sgp4x
+    voc_index:
+      name: "VOC Index"
+      id: indoor_voc
+    nox_index:
+      name: "NOx Index"
+      id: indoor_nox
+    compensation:
+      temperature_source: indoor_temp
+      humidity_source: indoor_humidity
+    update_interval: 60s
+
+  # Light Sensor (for Auto-brightness)
+  - platform: bh1750
+    id: light_level
+    name: "Room Illuminance"
+    update_interval: 10s
+
+binary_sensor:
+  - platform: ld2410
+    has_target:
+      name: "Presence Detected"
+      id: room_presence
+
+# --- DISPLAY & TOUCH ---
+display:
+  - platform: mipi_spi
+    id: my_display
+    model: ST7796
+    cs_pin: ${disp_cs}
+    dc_pin:
+      number: ${disp_dc}
+      allow_other_uses: true
+    reset_pin: ${disp_rst}
+    rotation: 0  # Adjust depending on mount
+    dimensions:
+      width: 320
+      height: 480
+    auto_clear_enabled: false
+
+# Touch screen (FT6336U Capacitive Touch on I2C)
+touchscreen:
+  - platform: ft63x6
+    id: my_touch
+    interrupt_pin: ${touch_int_pin}
+    reset_pin: ${touch_rst_pin}
+    on_release:
+      then:
+        - lambda: |-
+            id(display_last_activity_ms) = millis();
+        - if:
+            condition:
+              lambda: return id(display_is_asleep) && !id(display_transitioning);
+            then:
+              - script.execute: display_wake
+
+output:
+  - platform: ledc
+    pin: ${disp_bl}
+    id: display_backlight
+    frequency: 4882Hz
+  # Shared alias for sending ST7796 DCS commands over the display's SPI bus.
+  - platform: gpio
+    pin:
+      number: ${disp_dc}
+      allow_other_uses: true
+    id: display_dc_pin
+  - platform: gpio
+    pin: ${ice_alert_led_pin}
+    id: ice_alert_led_output
+
+light:
+  - platform: monochromatic
+    output: display_backlight
+    name: "Display Backlight"
+    id: display_light
+    restore_mode: ALWAYS_ON
+
+  - platform: binary
+    output: ice_alert_led_output
+    id: ice_alert_led
+    name: "Ice Alert LED"
+    effects:
+      - strobe:
+          name: "Blink"
+          colors:
+            - state: true
+              duration: 500ms
+            - state: false
+              duration: 2000ms
