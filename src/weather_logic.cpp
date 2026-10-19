@@ -7,12 +7,11 @@
 namespace weather_station {
 
   namespace {
-    // Eleven one-minute samples cover a thirty-minute trend window. Linear
-    // regression smooths small sensor oscillations; a minimum net change
-    // deadband keeps insignificant drift from producing an arrow.
+    // Up to 31 one-minute samples cover a thirty-minute trend window. The
+    // Theil-Sen median slope resists isolated bad readings.
     class TrendWindow {
      public:
-      explicit TrendWindow(float deadband) : deadband_(deadband) {}
+      explicit TrendWindow(float minimum_change) : minimum_change_(minimum_change) {}
 
       int add(float value) {
         if (!std::isfinite(value)) {
@@ -29,35 +28,29 @@ namespace weather_station {
         }
 
         const size_t oldest = count_ == samples_.size() ? next_ : 0;
-        const float first = samples_[oldest];
-        const float last = samples_[(oldest + count_ - 1) % samples_.size()];
-        const float net_change = last - first;
-        if (std::fabs(net_change) < deadband_) {
-          return 0;
+        // Compute every pairwise slope; their median is robust to outliers.
+        std::array<float, 31 * 30 / 2> slopes{};
+        size_t slope_count = 0;
+        for (size_t i = 0; i < count_; i++) {
+          for (size_t j = i + 1; j < count_; j++) {
+            slopes[slope_count++] =
+                (samples_[(oldest + j) % samples_.size()] -
+                 samples_[(oldest + i) % samples_.size()]) /
+                static_cast<float>(j - i);
+          }
         }
 
-        // Least-squares slope in value-per-sample (samples arrive once/minute).
-        const float mean_x = (count_ - 1) / 2.0f;
-        float mean_y = 0.0f;
-        for (size_t i = 0; i < count_; i++) {
-          mean_y += samples_[(oldest + i) % samples_.size()];
-        }
-        mean_y /= count_;
-
-        float numerator = 0.0f;
-        float denominator = 0.0f;
-        for (size_t i = 0; i < count_; i++) {
-          const float x_delta = i - mean_x;
-          const float y_delta = samples_[(oldest + i) % samples_.size()] - mean_y;
-          numerator += x_delta * y_delta;
-          denominator += x_delta * x_delta;
-        }
-        const float slope = numerator / denominator;
-        const float minimum_slope = deadband_ / 10.0f;
-        if (slope >= minimum_slope && net_change > 0.0f) {
+        std::sort(slopes.begin(), slopes.begin() + slope_count);
+        const float slope = slope_count % 2 == 0
+                                ? (slopes[slope_count / 2 - 1] + slopes[slope_count / 2]) / 2.0f
+                                : slopes[slope_count / 2];
+        const float covered_minutes = static_cast<float>(count_ - 1);
+        const float required_change = minimum_change_ * covered_minutes / 30.0f;
+        const float estimated_change = slope * covered_minutes;
+        if (estimated_change >= required_change) {
           return 1;
         }
-        if (slope <= -minimum_slope && net_change < 0.0f) {
+        if (estimated_change <= -required_change) {
           return -1;
         }
         return 0;
@@ -67,17 +60,17 @@ namespace weather_station {
       std::array<float, 31> samples_{};
       size_t next_{0};
       size_t count_{0};
-      float deadband_;
+      float minimum_change_;
     };
   }  // namespace
 
   int sample_temperature_trend(float value) {
-    static TrendWindow window(0.4f);  // Ignore changes smaller than 0.4 °C.
+    static TrendWindow window(0.5f);  // 0.5 °C over a full 30-minute window.
     return window.add(value);
   }
 
   int sample_humidity_trend(float value) {
-    static TrendWindow window(2.5f);  // Ignore changes smaller than 2.5 %RH.
+    static TrendWindow window(2.0f);  // 2 %RH over a full 30-minute window.
     return window.add(value);
   }
 
