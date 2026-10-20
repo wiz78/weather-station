@@ -63,6 +63,7 @@ sensor:
 
   # VOC / AQI
   - platform: sgp4x
+    id: indoor_sgp4x
     voc_index:
       name: "VOC Index"
       id: indoor_voc
@@ -82,6 +83,7 @@ sensor:
 
 binary_sensor:
   - platform: ld2410
+    id: radar_ld2410
     has_target:
       name: "Presence Detected"
       id: room_presence
