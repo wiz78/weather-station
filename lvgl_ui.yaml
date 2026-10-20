@@ -222,7 +222,7 @@ lvgl:
                   text_font: montserrat_16
               - label:
                   id: outside_humidity_trend
-                  x: 73
+                  x: 78
                   y: 87
                   text: "\U000F005D"
                   text_font: mdi_icons_24
@@ -230,7 +230,7 @@ lvgl:
                   text_color: 0xFFFFFF
               - label:
                   id: outside_temp_trend
-                  x: 130
+                  x: 140
                   y: 27
                   text: "\U000F005D"
                   text_font: mdi_icons_45
