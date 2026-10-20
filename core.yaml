@@ -2,6 +2,13 @@
 # This file handles the LVGL interface and internal logic.
 # It uses Home Assistant sensors (imported via substitutions) and local sensors.
 
+substitutions:
+  # SGP41 warning thresholds (VOC / NOx index)
+  voc_alert_index: "250"
+  voc_clear_index: "150"
+  nox_alert_index: "40"
+  nox_clear_index: "20"
+
 esphome:
   # Import custom C++ logic (e.g. for the Ice Alert LED blinker)
   includes:
@@ -391,7 +398,9 @@ interval:
       - if:
           condition:
             lambda: return weather_station::update_air_quality_warning(
-              id(indoor_voc).state, id(indoor_nox).state);
+              id(indoor_voc).state, id(indoor_nox).state,
+              ${voc_alert_index}, ${voc_clear_index},
+              ${nox_alert_index}, ${nox_clear_index});
           then:
             - lvgl.widget.show: air_quality_warning
           else:

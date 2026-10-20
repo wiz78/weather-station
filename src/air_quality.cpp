@@ -1,44 +1,28 @@
 #include "air_quality.h"
 
 #include <cmath>
-#include <cstdint>
 
 namespace weather_station {
 namespace {
 
-constexpr float ALERT_INDEX = 150.0f;
-constexpr float CLEAR_INDEX = 120.0f;
-constexpr uint8_t SAMPLES_TO_CHANGE = 5;
-
 bool warning_active = false;
-uint8_t elevated_samples = 0;
-uint8_t clear_samples = 0;
 
 }  // namespace
 
-bool update_air_quality_warning(float voc_index, float nox_index) {
+bool update_air_quality_warning(float voc_index, float nox_index,
+                                float voc_alert_index, float voc_clear_index,
+                                float nox_alert_index, float nox_clear_index) {
   if (!std::isfinite(voc_index) || !std::isfinite(nox_index)) {
     return warning_active;
   }
 
-  const bool elevated = voc_index >= ALERT_INDEX || nox_index >= ALERT_INDEX;
-  const bool clear = voc_index < CLEAR_INDEX && nox_index < CLEAR_INDEX;
+  const bool elevated = voc_index >= voc_alert_index || nox_index >= nox_alert_index;
+  const bool clear = voc_index < voc_clear_index && nox_index < nox_clear_index;
 
-  if (!warning_active) {
-    clear_samples = 0;
-    elevated_samples = elevated ? elevated_samples + 1 : 0;
-    if (elevated_samples >= SAMPLES_TO_CHANGE) {
-      warning_active = true;
-      elevated_samples = 0;
-    }
-  } else {
-    elevated_samples = 0;
-    clear_samples = clear ? clear_samples + 1 : 0;
-    if (clear_samples >= SAMPLES_TO_CHANGE) {
-      warning_active = false;
-      clear_samples = 0;
-    }
-  }
+  if (!warning_active && elevated)
+    warning_active = true;
+  else if (warning_active && clear)
+    warning_active = false;
 
   return warning_active;
 }
