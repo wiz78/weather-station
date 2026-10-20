@@ -230,7 +230,7 @@ lvgl:
                   text_color: 0xFFFFFF
               - label:
                   id: outside_temp_trend
-                  x: 123
+                  x: 130
                   y: 27
                   text: "\U000F005D"
                   text_font: mdi_icons_45
