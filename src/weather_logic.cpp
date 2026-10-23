@@ -1,8 +1,12 @@
 #include "weather_logic.h"
+
+#include <esp_attr.h>
+
 #include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cmath>
+#include <ranges>
 
 namespace weather_station {
 
@@ -11,7 +15,7 @@ namespace weather_station {
     // Theil-Sen median slope resists isolated bad readings.
     class TrendWindow {
      public:
-      explicit TrendWindow(float minimum_change) : minimum_change_(minimum_change) {}
+      explicit TrendWindow(const float minimum_change) : minimum_change_(minimum_change) {}
 
       int add(float value) {
         if (!std::isfinite(value)) {
@@ -56,26 +60,20 @@ namespace weather_station {
         return 0;
       }
 
+      void reset() {
+        std::ranges::fill(samples_, 0);
+        next_ = 0;
+        count_ = 0;
+      }
+
      private:
       std::array<float, 31> samples_{};
       size_t next_{0};
       size_t count_{0};
       float minimum_change_;
     };
-  }  // namespace
 
-  int sample_temperature_trend(float value) {
-    static TrendWindow window(0.5f);  // 0.5 °C over a full 30-minute window.
-    return window.add(value);
-  }
-
-  int sample_humidity_trend(float value) {
-    static TrendWindow window(2.0f);  // 2 %RH over a full 30-minute window.
-    return window.add(value);
-  }
-
-  namespace {
-    class WeatherHistory {
+     class WeatherHistory {
      public:
       static constexpr size_t CAPACITY = 288;  // 24 hours at 5-minute intervals
       static constexpr uint32_t SAMPLE_INTERVAL_MS = 5UL * 60UL * 1000UL;
@@ -118,7 +116,7 @@ namespace weather_station {
 
       int point_x(int point, int width) const {
         if (width <= 1) return 0;
-        point = std::max(0, std::min(point, 24));
+        point = std::clamp(point, 0, 24);
         return point * (width - 1) / 24;
       }
 
@@ -126,7 +124,7 @@ namespace weather_station {
         if (height <= 1 || series < 0 || series >= 4 || count_ == 0) {
           return height > 1 ? height / 2 : 0;
         }
-        point = std::max(0, std::min(point, 24));
+        point = std::clamp(point, 0, 24);
         const size_t oldest = count_ == CAPACITY ? next_ : 0;
         const size_t sample_index = (static_cast<size_t>(point) * (count_ - 1) + 12) / 24;
         const float value = values_[series][(oldest + sample_index) % CAPACITY];
@@ -141,6 +139,16 @@ namespace weather_station {
         return static_cast<int>((1.0f - normalized) * (height - 1) + 0.5f);
       }
 
+      void reset() {
+        for (auto& a : values_)
+          std::ranges::fill(a, 0);
+
+        next_ = 0;
+        count_ = 0;
+        last_sample_ms_ = 0;
+        has_sampled_ = false;
+      }
+
      private:
       std::array<std::array<float, CAPACITY>, 4> values_{};
       size_t next_{0};
@@ -149,32 +157,60 @@ namespace weather_station {
       bool has_sampled_{false};
     };
 
-    WeatherHistory weather_history;
+    class WeatherData {
+    public:
+      int32_t magic{};
+      TrendWindow temperatureWindow{0.5f};
+      TrendWindow humidityWindow{2.0f};
+      WeatherHistory weatherHistory;
+
+      WeatherData() {
+        if (magic != RTC_MAGIC_NUMBER) {
+          temperatureWindow.reset();
+          humidityWindow.reset();
+          weatherHistory.reset();
+          magic = RTC_MAGIC_NUMBER;
+        }
+      }
+
+    private:
+      static constexpr int32_t RTC_MAGIC_NUMBER = 0xCAFECAFE;
+    };
+
+    RTC_DATA_ATTR WeatherData data;
   }  // namespace
 
-  void record_weather_history(float outside_temp, float outside_humidity,
-                              float inside_temp, float inside_humidity) {
-    weather_history.record(outside_temp, outside_humidity, inside_temp, inside_humidity);
+  int sample_temperature_trend(const float value) {
+    return data.temperatureWindow.add(value);
   }
 
-  float history_minimum(int series) {
-    return weather_history.extreme(series, true);
+  int sample_humidity_trend(const float value) {
+    return data.humidityWindow.add(value);
   }
 
-  float history_maximum(int series) {
-    return weather_history.extreme(series, false);
+  void record_weather_history(const float outside_temp, const float outside_humidity,
+                              const float inside_temp, const float inside_humidity) {
+    data.weatherHistory.record(outside_temp, outside_humidity, inside_temp, inside_humidity);
   }
 
-  int history_point_x(int point, int width) {
-    return weather_history.point_x(point, width);
+  float history_minimum(const int series) {
+    return data.weatherHistory.extreme(series, true);
   }
 
-  int history_point_y(int series, int point, int height) {
-    return weather_history.point_y(series, point, height);
+  float history_maximum(const int series) {
+    return data.weatherHistory.extreme(series, false);
   }
 
-  void check_ice_alert(float outside_temp, esphome::light::LightState *led,
-                       bool disabled) {
+  int history_point_x(const int point, const int width) {
+    return data.weatherHistory.point_x(point, width);
+  }
+
+  int history_point_y(const int series, const int point, const int height) {
+    return data.weatherHistory.point_y(series, point, height);
+  }
+
+  void check_ice_alert(const float outside_temp, esphome::light::LightState *led,
+                       const bool disabled) {
     if (disabled) {
       auto call = led->turn_off();
       call.perform();

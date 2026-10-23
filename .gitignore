@@ -13,3 +13,5 @@ scratch/
 
 # Local config
 my_weather_station.yaml
+
+.idea/
