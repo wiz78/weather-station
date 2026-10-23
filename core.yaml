@@ -21,7 +21,7 @@ esphome:
     - src/sht4x_maintenance.h
     - src/sht4x_maintenance.cpp
   on_boot:
-    - priority: 1000
+    - priority: 199
       then:
         - lambda: |-
             weather_station::init_weather_data();
