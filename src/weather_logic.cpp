@@ -191,7 +191,7 @@ namespace weather_station {
       static constexpr char TAG[] = "weather_logic";
     };
 
-    RTC_DATA_ATTR WeatherData data;
+    RTC_NOINIT_ATTR WeatherData data;
   }  // namespace
 
   void init_weather_data() {
