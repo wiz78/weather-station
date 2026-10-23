@@ -487,6 +487,7 @@ lvgl:
                   y: 50
                   width: 280
                   height: 45
+                  line_width: 2
                   points:
                     - 0, 24
                     - 12, 21
@@ -538,6 +539,7 @@ lvgl:
                   y: 130
                   width: 280
                   height: 45
+                  line_width: 2
                   points:
                     - 0, 26
                     - 12, 23
@@ -609,6 +611,7 @@ lvgl:
                   y: 50
                   width: 280
                   height: 45
+                  line_width: 2
                   points:
                     - 0, 24
                     - 12, 21
@@ -660,6 +663,7 @@ lvgl:
                   y: 130
                   width: 280
                   height: 45
+                  line_width: 2
                   points:
                     - 0, 26
                     - 12, 23
