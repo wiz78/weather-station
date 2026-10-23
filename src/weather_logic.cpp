@@ -1,4 +1,5 @@
 #include "weather_logic.h"
+#include "esphome/core/log.h"
 
 #include <esp_attr.h>
 
@@ -174,17 +175,20 @@ namespace weather_station {
         humidityWindow.set_minimum_change(2.0f);
 
         if (magic != RTC_MAGIC_NUMBER) {
+          ESP_LOGW(TAG, "RTC Magic Number invalid (0x%08X). Initializing RTC memory...", static_cast<unsigned int>(magic));
           temperatureWindow.reset();
           humidityWindow.reset();
           weatherHistory.reset();
           magic = RTC_MAGIC_NUMBER;
         } else {
+          ESP_LOGI(TAG, "RTC Magic Number valid (0x%08X). Historical data preserved.", static_cast<unsigned int>(magic));
           weatherHistory.resetTimestamp();
         }
       }
 
     private:
       static constexpr int32_t RTC_MAGIC_NUMBER = 0xCAFECAFE;
+      static constexpr char TAG[] = "weather_logic";
     };
 
     RTC_DATA_ATTR WeatherData data;
