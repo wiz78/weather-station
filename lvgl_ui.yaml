@@ -180,21 +180,70 @@ lvgl:
                   text: "OUTSIDE"
                   text_color: 0x8BA6B2
                   text_font: montserrat_14
-              - label:
-                  id: outside_temp_value
-                  x: -2
+              - obj:
+                  width: SIZE_CONTENT
+                  height: SIZE_CONTENT
+                  x: 2
                   y: 19
-                  text: "--.-°"
-                  text_color: 0xF4F7F8
-                  text_align: LEFT
-                  text_font: montserrat_60
-              - label:
-                  id: outside_humidity_value
+                  layout:
+                    type: FLEX
+                    flex_flow: ROW
+                    flex_align_main: START
+                    flex_align_cross: START
+                    pad_column: 8
+                  pad_all: 0
+                  bg_opa: TRANSP
+                  border_width: 0
+                  widgets:
+                    - label:
+                        id: outside_temp_value
+                        text: "--.-°"
+                        text_color: 0xF4F7F8
+                        text_align: LEFT
+                        text_font: montserrat_60
+                    - label:
+                        id: outside_temp_trend
+                        margin_top: 8
+                        text: "\U000F005D"
+                        text_font: mdi_icons_45
+                        text_align: CENTER
+                        text_color: 0xFFFFFF
+              - obj:
+                  width: SIZE_CONTENT
+                  height: SIZE_CONTENT
                   x: 2
                   y: 90
-                  text: "RH --%"
-                  text_color: 0x69C8D4
-                  text_font: montserrat_16
+                  layout:
+                    type: FLEX
+                    flex_flow: ROW
+                    flex_align_main: START
+                    flex_align_cross: START
+                    pad_column: 6
+                  pad_all: 0
+                  bg_opa: TRANSP
+                  border_width: 0
+                  widgets:
+                    - label:
+                        id: outside_humidity_value
+                        text: "RH --%"
+                        text_color: 0x69C8D4
+                        text_font: montserrat_16
+                    - label:
+                        id: outside_humidity_trend
+                        margin_top: -3
+                        text: "\U000F005D"
+                        text_font: mdi_icons_24
+                        text_align: CENTER
+                        text_color: 0xFFFFFF
+              - label:
+                  id: outside_battery_icon
+                  x: 230
+                  y: -2
+                  text: "\U000F0079"
+                  text_font: mdi_icons_20
+                  text_align: CENTER
+                  text_color: 0xFFFFFF
+                  transform_rotation: 90
               - label:
                   id: outside_battery_value
                   x: 233
@@ -220,31 +269,6 @@ lvgl:
                   text_color: 0xD7E4E8
                   text_align: RIGHT
                   text_font: montserrat_16
-              - label:
-                  id: outside_humidity_trend
-                  x: 78
-                  y: 87
-                  text: "\U000F005D"
-                  text_font: mdi_icons_24
-                  text_align: CENTER
-                  text_color: 0xFFFFFF
-              - label:
-                  id: outside_temp_trend
-                  x: 140
-                  y: 27
-                  text: "\U000F005D"
-                  text_font: mdi_icons_45
-                  text_align: CENTER
-                  text_color: 0xFFFFFF
-              - label:
-                  id: outside_battery_icon
-                  x: 230
-                  y: -2
-                  text: "\U000F0079"
-                  text_font: mdi_icons_20
-                  text_align: CENTER
-                  text_color: 0xFFFFFF
-                  transform_rotation: 90
 
         - obj:
             id: lv_obj_2
@@ -271,7 +295,7 @@ lvgl:
                   y: 30
                   width: 180
                   height: 45
-                  text: "Partly cloudy"
+                  text: "---"
                   text_color: 0xF4F7F8
                   text_font: montserrat_20
               - label:
@@ -306,7 +330,7 @@ lvgl:
                   text_font: montserrat_14
               - label:
                   id: inside_temp_value
-                  x: 0
+                  x: 2
                   y: 21
                   text: "--.-°"
                   text_color: 0xF4F7F8
