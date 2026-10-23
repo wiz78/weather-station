@@ -15,9 +15,9 @@ namespace weather_station {
     // Theil-Sen median slope resists isolated bad readings.
     class TrendWindow {
      public:
-      explicit TrendWindow(const float minimum_change) : minimum_change_(minimum_change) {}
+      void set_minimum_change(const float minimum_change) { minimum_change_ = minimum_change; }
 
-      int add(float value) {
+      int add(const float value) {
         if (!std::isfinite(value)) {
           return 0;
         }
@@ -33,7 +33,7 @@ namespace weather_station {
 
         const size_t oldest = count_ == samples_.size() ? next_ : 0;
         // Compute every pairwise slope; their median is robust to outliers.
-        std::array<float, 31 * 30 / 2> slopes{};
+        static std::array<float, 31 * 30 / 2> slopes{};
         size_t slope_count = 0;
         for (size_t i = 0; i < count_; i++) {
           for (size_t j = i + 1; j < count_; j++) {
@@ -67,9 +67,9 @@ namespace weather_station {
       }
 
      private:
-      std::array<float, 31> samples_{};
-      size_t next_{0};
-      size_t count_{0};
+      std::array<float, 31> samples_;
+      size_t next_;
+      size_t count_;
       float minimum_change_;
     };
 
@@ -78,8 +78,8 @@ namespace weather_station {
       static constexpr size_t CAPACITY = 288;  // 24 hours at 5-minute intervals
       static constexpr uint32_t SAMPLE_INTERVAL_MS = 5UL * 60UL * 1000UL;
 
-      void record(float outside_temp, float outside_humidity,
-                  float inside_temp, float inside_humidity) {
+      void record(const float outside_temp, const float outside_humidity,
+                  const float inside_temp, const float inside_humidity) {
         const uint32_t now = esphome::millis();
         if (has_sampled_ && static_cast<uint32_t>(now - last_sample_ms_) < SAMPLE_INTERVAL_MS) {
           return;
@@ -114,13 +114,13 @@ namespace weather_station {
         return found ? result : NAN;
       }
 
-      int point_x(int point, int width) const {
+      int point_x(int point, const int width) const {
         if (width <= 1) return 0;
         point = std::clamp(point, 0, 24);
         return point * (width - 1) / 24;
       }
 
-      int point_y(int series, int point, int height) const {
+      int point_y(const int series, int point, const int height) const {
         if (height <= 1 || series < 0 || series >= 4 || count_ == 0) {
           return height > 1 ? height / 2 : 0;
         }
@@ -145,31 +145,41 @@ namespace weather_station {
 
         next_ = 0;
         count_ = 0;
-        last_sample_ms_ = 0;
         has_sampled_ = false;
+
+        resetTimestamp();
+      }
+
+      void resetTimestamp() {
+        last_sample_ms_ = 0;
       }
 
      private:
-      std::array<std::array<float, CAPACITY>, 4> values_{};
-      size_t next_{0};
-      size_t count_{0};
-      uint32_t last_sample_ms_{0};
-      bool has_sampled_{false};
+      std::array<std::array<float, CAPACITY>, 4> values_;
+      size_t next_;
+      size_t count_;
+      uint32_t last_sample_ms_;
+      bool has_sampled_;
     };
 
     class WeatherData {
     public:
       int32_t magic{};
-      TrendWindow temperatureWindow{0.5f};
-      TrendWindow humidityWindow{2.0f};
+      TrendWindow temperatureWindow;
+      TrendWindow humidityWindow;
       WeatherHistory weatherHistory;
 
-      WeatherData() {
+      void init() {
+        temperatureWindow.set_minimum_change(0.5f);
+        humidityWindow.set_minimum_change(2.0f);
+
         if (magic != RTC_MAGIC_NUMBER) {
           temperatureWindow.reset();
           humidityWindow.reset();
           weatherHistory.reset();
           magic = RTC_MAGIC_NUMBER;
+        } else {
+          weatherHistory.resetTimestamp();
         }
       }
 
@@ -179,6 +189,10 @@ namespace weather_station {
 
     RTC_DATA_ATTR WeatherData data;
   }  // namespace
+
+  void init_weather_data() {
+    data.init();
+  }
 
   int sample_temperature_trend(const float value) {
     return data.temperatureWindow.add(value);

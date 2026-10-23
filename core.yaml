@@ -20,6 +20,11 @@ esphome:
     - src/air_quality.cpp
     - src/sht4x_maintenance.h
     - src/sht4x_maintenance.cpp
+  on_boot:
+    - priority: 1000
+      then:
+        - lambda: |-
+            weather_station::init_weather_data();
 
 time:
   # Pulls the time and timezone exactly as configured in Home Assistant!

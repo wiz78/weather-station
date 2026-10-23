@@ -4,6 +4,8 @@
 
 namespace weather_station {
 
+  void init_weather_data();
+
   // Simple function to blink the ice alert LED if temperature drops below 4C
   // This is called from the `on_value` trigger of the outside temp sensor.
   void check_ice_alert(float outside_temp, esphome::light::LightState *led,
