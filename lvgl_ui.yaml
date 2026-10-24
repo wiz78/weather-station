@@ -161,7 +161,7 @@ lvgl:
       pad_all: 0
       scrollbar_mode: "OFF"
       widgets:
-        - button:
+        - obj:
             id: outside_block
             x: 10
             y: 10
@@ -175,7 +175,7 @@ lvgl:
             widgets:
               - label:
                   id: lv_label_0
-                  x: 0
+                  x: 4
                   y: 0
                   text: "OUTSIDE"
                   text_color: 0x8BA6B2
@@ -183,7 +183,7 @@ lvgl:
               - obj:
                   width: SIZE_CONTENT
                   height: SIZE_CONTENT
-                  x: 2
+                  x: 6
                   y: 19
                   layout:
                     type: FLEX
@@ -211,7 +211,7 @@ lvgl:
               - obj:
                   width: SIZE_CONTENT
                   height: SIZE_CONTENT
-                  x: 2
+                  x: 6
                   y: 90
                   layout:
                     type: FLEX
@@ -237,7 +237,7 @@ lvgl:
                         text_color: 0xFFFFFF
               - label:
                   id: outside_battery_icon
-                  x: 230
+                  x: 234
                   y: -2
                   text: "\U000F0079"
                   text_font: mdi_icons_20
@@ -246,7 +246,7 @@ lvgl:
                   transform_rotation: 90
               - label:
                   id: outside_battery_value
-                  x: 233
+                  x: 237
                   y: 0
                   width: 44
                   text: "100%"
@@ -255,14 +255,14 @@ lvgl:
                   text_font: montserrat_16
               - label:
                   id: lv_label_1
-                  x: 153
+                  x: 157
                   y: 92
                   text: "PRESS"
                   text_color: 0x8BA6B2
                   text_font: montserrat_12
               - label:
                   id: pressure_value
-                  x: 191
+                  x: 195
                   y: 90
                   width: 88
                   text: "---- hPa"
@@ -309,7 +309,7 @@ lvgl:
                   text_align: CENTER
                   text_font: mdi_icons_24
 
-        - button:
+        - obj:
             id: inside_block
             x: 10
             y: 239
@@ -323,42 +323,42 @@ lvgl:
             widgets:
               - label:
                   id: lv_label_4
-                  x: 0
+                  x: 4
                   y: -1
                   text: "INDOOR"
                   text_color: 0x8BA6B2
                   text_font: montserrat_14
               - label:
                   id: inside_temp_value
-                  x: 2
+                  x: 6
                   y: 21
                   text: "--.-°"
                   text_color: 0xF4F7F8
                   text_font: montserrat_36
               - label:
                   id: inside_humidity_value
-                  x: 2
+                  x: 6
                   y: 64
                   text: "RH --%"
                   text_color: 0x69C8D4
                   text_font: montserrat_14
               - label:
                   id: lv_label_5
-                  x: 148
+                  x: 154
                   y: 1
                   text: "AIR QUALITY"
                   text_color: 0x8BA6B2
                   text_font: montserrat_12
               - label:
                   id: lv_label_6
-                  x: 148
+                  x: 154
                   y: 34
                   text: "VOC"
                   text_color: 0x8BA6B2
                   text_font: montserrat_12
               - label:
                   id: voc_value
-                  x: 195
+                  x: 199
                   y: 31
                   width: 78
                   text: "---"
@@ -367,14 +367,14 @@ lvgl:
                   text_font: montserrat_18
               - label:
                   id: lv_label_7
-                  x: 148
+                  x: 154
                   y: 64
                   text: "NOx"
                   text_color: 0x8BA6B2
                   text_font: montserrat_12
               - label:
                   id: nox_value
-                  x: 195
+                  x: 199
                   y: 61
                   width: 78
                   text: "---"
@@ -383,7 +383,7 @@ lvgl:
                   text_font: montserrat_18
               - label:
                   id: air_quality_warning
-                  x: 250
+                  x: 254
                   y: -4
                   hidden: true
                   text: "\U000F0026"
