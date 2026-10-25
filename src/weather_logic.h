@@ -5,6 +5,7 @@
 namespace weather_station {
 
   void init_weather_data();
+  void save_weather_data_backup();
 
   // Simple function to blink the ice alert LED if temperature drops below 4C
   // This is called from the `on_value` trigger of the outside temp sensor.

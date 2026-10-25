@@ -14,6 +14,12 @@ esphome:
   includes:
     - src/weather_logic.h
     - src/weather_logic.cpp
+    - src/trend_window.h
+    - src/trend_window.cpp
+    - src/weather_history.h
+    - src/weather_history.cpp
+    - src/weather_data.h
+    - src/weather_data.cpp
     - src/display_control.h
     - src/display_control.cpp
     - src/air_quality.h
@@ -25,6 +31,15 @@ esphome:
       then:
         - lambda: |-
             weather_station::init_weather_data();
+
+# Snapshot only after a successful upload, synchronously before OTA reboots.
+ota:
+  - platform: web_server
+    on_end:
+      - lambda: weather_station::save_weather_data_backup();
+  - platform: esphome
+    on_end:
+      - lambda: weather_station::save_weather_data_backup();
 
 time:
   # Pulls the time and timezone exactly as configured in Home Assistant!
